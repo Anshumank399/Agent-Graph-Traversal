@@ -1,26 +1,19 @@
 """
-Created on Tue Sep  7 15:50:04 2021
-
-@author: anshuman_k
+@author: Anshuman Dey Kirty
+Code Structure:
+    Functions
+    Script (main)
 """
 
-# Reading Input Text File.
-lines = []
-with open('Input8.txt') as f:
-    lines = f.readlines()
-# Strip the \n read from the text file.
-lines = list(map(lambda x:x.strip(),lines))
-
-# Assigning the values to variables from the text file.
-search_type = lines[0]
-
 def convert_str_tuple_int(str_tuple):
+    """
+    Function to convert tuple with strings to tuple with int.
+    Input:
+        str_tuple: String Tuple
+    Output:
+        Tuple with int values.
+    """
     return tuple(map(lambda x: int(x), str_tuple))
-
-# Storing as tuple
-grid_size = convert_str_tuple_int(tuple(lines[1].split(" ")))
-start_point = convert_str_tuple_int(tuple(lines[2].split(" ")))
-end_point = convert_str_tuple_int(tuple(lines[3].split(" ")))
 
 def fetch_next_step(coordinate: tuple, step: int):
     """
@@ -72,20 +65,6 @@ def fetch_next_step(coordinate: tuple, step: int):
     if step == 18:
         return x, y-1, z-1
 
-graph = {}
-
-# Loop to form the graph.
-for i in range(int(lines[4])):
-    paths = []
-    for j in range(len(lines[i+5].split())-3):
-        next_step = fetch_next_step(tuple(lines[i+5].split()[:3]), 
-                                    int(lines[i+5].split()[j+3]))
-        paths.append(next_step)
-        tuple_int = tuple(map(lambda s: int(s), 
-                              tuple(lines[i+5].split()[:3])))
-    graph.update({tuple_int: paths})
-#print(graph)
-
 def bfs_path_search(graph: dict, start_point: tuple, end_point: tuple):
     """
     Function to get the shortest path if available between two nodes else
@@ -96,8 +75,98 @@ def bfs_path_search(graph: dict, start_point: tuple, end_point: tuple):
         start_point: Tuple with the start point.
         end_point: Tuple with the end point.
     Output:
-        
-    """
+        path_length: Int
+        nodes_num: Int
+        nodes: List
 
+    """
+    path_length = 0
+    visited = []
+    tracker = [[start_point]]
+    flag = False
+    
+    while len(tracker) > 0:
+        temp = tracker[0]
+        tracker = tracker[1:]
+        on = temp[-1]
+        
+        if on not in visited:
+            neighbours = graph[on]
+            for neighbour in neighbours:
+                short_path = list(temp)
+                short_path.append(neighbour)
+                tracker.append(short_path)
+                    
+                if neighbour == end_point:
+                    flag = True
+                    return short_path
+            visited.append(on)
+    if flag == False:
+        textfile = open(output_file, "w")
+        textfile.write("FAIL")
+        sys.exit()
+
+def write_output(path_length: int, nodes_num: int, short_path: list):
+    textfile = open(output_file, "w")
+    textfile.write(str(path_length) + "\n")
+    textfile.write(str(nodes_num) + "\n")
+    for i in range (len(short_path)):
+        if i == 0:
+            textfile.write(" ".join(map(str, short_path[i]))+" 0\n")
+        elif i == len(short_path)-1:
+            textfile.write(" ".join(map(str, short_path[i]))+" 1")
+        else:
+            textfile.write(" ".join(map(str, short_path[i]))+" 1\n")
+    
+    
+
+# Main Code
+import sys
+
+# Reading Input Text File.
+lines = []
+input_file = "../Input8.txt"
+output_file = "../Output.txt"
+with open(input_file) as f:
+    lines = f.readlines()
+# Strip the \n read from the text file.
+lines = list(map(lambda x:x.strip(),lines))
+
+# Assigning the values to variables from the text file.
+search_type = lines[0]
+
+# Storing as tuple
+grid_size = convert_str_tuple_int(tuple(lines[1].split(" ")))
+start_point = convert_str_tuple_int(tuple(lines[2].split(" ")))
+end_point = convert_str_tuple_int(tuple(lines[3].split(" ")))
+
+graph = {}
+
+# Loop to form the graph.
+for i in range(int(lines[4])):
+    paths = []
+    for j in range(len(lines[i+5].split())-3):
+        next_step = fetch_next_step(tuple(lines[i+5].split()[:3]), 
+                                    int(lines[i+5].split()[j+3]))
+        paths.append(next_step)
+        tuple_int = convert_str_tuple_int(tuple(lines[i+5].split()[:3]))
+    graph.update({tuple_int: paths})
+#print(graph)
+
+if search_type == "BFS":
+    # Edge Case
+    if end_point == start_point:
+        ls = []
+        ls.append(start_point)
+        write_output(0, 1, ls)
+        sys.exit()
+    
+    short_path = bfs_path_search(graph, start_point, end_point)
+    write_output(len(short_path)-1, len(short_path), short_path)
+#elif search_type == "UCS":
+    
+        
+    
+    
     
     
