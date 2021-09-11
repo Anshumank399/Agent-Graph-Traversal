@@ -4,6 +4,10 @@ Code Structure:
     Functions
     Script (main)
 """
+# Libraries
+import sys
+import numpy as np
+import heapq as hq
 
 def convert_str_tuple_int(str_tuple):
     """
@@ -80,31 +84,68 @@ def bfs_path_search(graph: dict, start_point: tuple, end_point: tuple):
         nodes: List
 
     """
-    path_length = 0
-    visited = []
+    visited = {}
+    for key in graph.keys():
+        visited[key] = 0
     tracker = [[start_point]]
-    flag = False
-    
+
     while len(tracker) > 0:
         temp = tracker[0]
         tracker = tracker[1:]
         on = temp[-1]
-        
-        if on not in visited:
+        if visited[on] == 0:
             neighbours = graph[on]
             for neighbour in neighbours:
                 short_path = list(temp)
                 short_path.append(neighbour)
                 tracker.append(short_path)
-                    
                 if neighbour == end_point:
-                    flag = True
                     return short_path
-            visited.append(on)
-    if flag == False:
-        textfile = open(output_file, "w")
-        textfile.write("FAIL")
-        sys.exit()
+            visited[on] = 1
+    textfile = open(output_file, "w")
+    textfile.write("FAIL")
+    sys.exit()
+
+def graph_with_distance(graph: dict):
+    def get_distance(t1: tuple, t2: tuple):
+        a = np.array(t1)
+        b = np.array(t2)
+        dist = np.linalg.norm(a-b)
+        if dist == 1:
+            return 10
+        else:
+            return 14
+    dist_graph = {}
+    for key in graph.keys():
+        path = {}
+        for i in range(len(graph[key])):
+            path.update({graph[key][i]: get_distance(key, 
+                                                     graph[key][i])})
+        dist_graph.update({key: path})
+    return dist_graph
+
+def ucs_path_search(graph:dict, start_point: tuple, end_point: tuple):
+    graph = graph_with_distance(graph)
+    visited = {}
+    for key in graph.keys():
+        visited[key] = 0
+    tracker = {start_point: 0}
+    while len(tracker):
+        on = min(tracker, key=tracker.get)
+        value = tracker.pop(on)
+        temp = {on: value}
+        if visited[on] == 0:
+            neighbours = graph[on]
+            for neighbour in neighbours.keys():
+                #path = list(temp)
+                temp.update({neighbour: graph[on][neighbour]})
+                #print(temp)
+                tracker.update(temp)
+                print(tracker)
+            visited[on] = 1
+                #if neighbour == end_point:
+                #    return short_path, 
+        
 
 def write_output(path_length: int, nodes_num: int, short_path: list):
     textfile = open(output_file, "w")
@@ -118,14 +159,10 @@ def write_output(path_length: int, nodes_num: int, short_path: list):
         else:
             textfile.write(" ".join(map(str, short_path[i]))+" 1\n")
     
-    
-
 # Main Code
-import sys
-
 # Reading Input Text File.
 lines = []
-input_file = "../Input8.txt"
+input_file = "../Input2.txt"
 output_file = "../Output.txt"
 with open(input_file) as f:
     lines = f.readlines()
@@ -153,19 +190,36 @@ for i in range(int(lines[4])):
     graph.update({tuple_int: paths})
 #print(graph)
 
-if search_type == "BFS":
-    # Edge Case
+# Edge Case
     if end_point == start_point:
         ls = []
         ls.append(start_point)
         write_output(0, 1, ls)
         sys.exit()
-    
+        
+if search_type == "BFS":
     short_path = bfs_path_search(graph, start_point, end_point)
     write_output(len(short_path)-1, len(short_path), short_path)
-#elif search_type == "UCS":
+elif search_type == "UCS":
+    short_path = ucs_path_search(graph, start_point,end_point)
     
-        
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     
     
