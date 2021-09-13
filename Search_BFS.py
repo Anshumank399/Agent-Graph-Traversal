@@ -72,6 +72,28 @@ def fetch_next_step(coordinate: tuple, step: int):
         return x, y - 1, z - 1
 
 
+def clean_graph(graph: dict, grid_size: tuple):
+    """
+    Function to clean the graph. (Remove points hitting wall)
+    """
+    for key in graph.keys():
+        if key[0] < grid_size[0] and key[1] < grid_size[1] and key[2] < grid_size[2]:
+            continue
+        else:
+            graph.pop(key)
+    for key in graph.keys():
+        for neighbor in graph[key]:
+            if (
+                neighbor[0] < grid_size[0]
+                and neighbor[1] < grid_size[1]
+                and neighbor[2] < grid_size[2]
+            ):
+                continue
+            else:
+                graph[key].remove(neighbor)
+    return graph
+
+
 def bfs_path_search(graph: dict, start_point: tuple, end_point: tuple):
     """
     Function to get the shortest path if available between two nodes else
@@ -109,14 +131,33 @@ def bfs_path_search(graph: dict, start_point: tuple, end_point: tuple):
     sys.exit()
 
 
+# =============================================================================
+# @profile
+# def get_distance(t1: tuple, t2: tuple):
+#     a = np.array(t1)
+#     b = np.array(t2)
+#     dist = np.linalg.norm(a - b)
+#     if dist == 1:
+#         return 10
+#     else:
+#         return 14
+#
+# =============================================================================
+
+
+@profile
 def get_distance(t1: tuple, t2: tuple):
-    a = np.array(t1)
-    b = np.array(t2)
-    dist = np.linalg.norm(a - b)
-    if dist == 1:
-        return 10
-    else:
+    count = 0
+    if t1[0] == t2[0]:
+        count += 1
+    if t1[1] == t2[1]:
+        count += 1
+    if t1[2] == t2[2]:
+        count += 1
+    if count == 1:
         return 14
+    else:
+        return 10
 
 
 def graph_with_distance(graph: dict):
@@ -129,9 +170,14 @@ def graph_with_distance(graph: dict):
     return dist_graph
 
 
+import memory_profiler
+
+
+@profile
 def ucs_path_search(graph: dict, start_point: tuple, end_point: tuple):
+    w_graph = graph_with_distance(graph)
     visited = {}
-    for key in graph.keys():
+    for key in w_graph.keys():
         visited[key] = 0
     tracker = PriorityQueue()
     tracker.put((0, (start_point), [start_point]))
@@ -139,11 +185,47 @@ def ucs_path_search(graph: dict, start_point: tuple, end_point: tuple):
         cost, on, short_path = tracker.get()
         if visited[on] == 0:
             visited[on] = 1
+            for neighbour in w_graph[on].keys():
+                if visited[neighbour] == 0:
+                    total_cost = cost + w_graph[on][neighbour]
+                    tracker.put((total_cost, neighbour, short_path + [neighbour]))
+                    if neighbour == end_point:
+                        return (total_cost, short_path + [neighbour])
+    textfile = open(output_file, "w")
+    textfile.write("FAIL")
+    sys.exit()
+
+
+def manhattan_distance(t1: tuple, t2: tuple):
+    return abs(t1[0] - t2[0]) + abs(t1[1] - t2[1]) + abs(t1[2] - t2[2])
+
+
+def astar_path_search(graph: dict, start_point: tuple, end_point: tuple):
+    visited = {}
+    for key in graph.keys():
+        visited[key] = 0
+    tracker = PriorityQueue()
+    tracker.put(
+        (
+            manhattan_distance(start_point, end_point),
+            0,
+            manhattan_distance(start_point, end_point),
+            (start_point),
+            [start_point],
+        )
+    )
+    while not tracker.empty():
+        t_cost, a_cost, e_cost, on, short_path = tracker.get()
+        if visited[on] == 0:
+            visited[on] = 1
             neighbours = graph[on]
             for neighbour in neighbours:
-                # if visited[neighbour] == 0:
-                total_cost = cost + get_distance(on, neighbour)
-                tracker.put((total_cost, neighbour, short_path + [neighbour]))
+                total_cost = a_cost + get_distance(on, neighbour)
+                e_cost = manhattan_distance(on, end_point)
+                t_cost = total_cost + manhattan_distance(on, end_point)
+                tracker.put(
+                    (t_cost, total_cost, e_cost, neighbour, short_path + [neighbour])
+                )
                 if neighbour == end_point:
                     return (total_cost, short_path + [neighbour])
     textfile = open(output_file, "w")
@@ -163,7 +245,7 @@ def write_output(path_length: int, nodes_num: int, short_path: list, search_type
                 textfile.write(" ".join(map(str, short_path[i])) + " 1")
             else:
                 textfile.write(" ".join(map(str, short_path[i])) + " 1\n")
-    elif search_type == "UCS":
+    elif search_type == "UCS" or search_type == "A*":
         textfile = open(output_file, "w")
         textfile.write(str(path_length) + "\n")
         textfile.write(str(nodes_num) + "\n")
@@ -233,4 +315,6 @@ elif search_type == "UCS":
     cost, short_path = ucs_path_search(graph, start_point, end_point)
     write_output(cost, len(short_path), short_path, search_type)
 elif search_type == "A*":
-    cost, short_path = astar()
+    cost, short_path = astar_path_search(graph, start_point, end_point)
+    write_output(cost, len(short_path), short_path, search_type)
+    write_output(cost, len(short_path), short_path, search_type)
